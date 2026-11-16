@@ -16,4 +16,6 @@ Generated Xcode projects are ignored; `project.yml` is the source of truth. `bui
 
 The four tabs mirror Path, Drills, Review and Mastery. Foreground and pull refresh fetch progress with an eight-second timeout. All lessons are available immediately. Numeric and multiple-choice answers include raw `givenAnswer`, optional reasoning and confidence in `/api/complete-round`. Server grading is authoritative. Review rounds use this same endpoint, which already advances spaced repetition. The API also exposes the manual `/api/update-review` operation; it must not be applied a second time to round answers.
 
+Run the Shop is accessible from Path and Mastery. Its five plants, furnaces, standing decisions, jobs, events, P&L, grades, history and tutor debriefs load from the backend. Closing the screen preserves the server run; resume fetches the active state. Only Quit abandons it.
+
 Failed saves retain answers. The backend has no idempotency key: after an ambiguous network failure, inspect progress before retrying. Simulator compilation does not verify live Tailscale access or device interaction. No credentials or data files belong in this repository.

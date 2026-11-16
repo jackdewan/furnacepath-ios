@@ -8,4 +8,6 @@
 
 ## Phase B
 - Implemented after Phase A green: dynamic plant/furnace setup, starting position, active-run resume, capacity-aware jobs and player pricing, standing decisions, Woodworth overflow, event cards, P&L, final scoring/weak spots, tutor debriefs, completed-run history and confirmed abandon. All simulation state/processing stays on P51.
-- Simulator CI pending; no production sim writes performed.
+- Simulator CI **GREEN on initial build** (no correction iterations), commit e494821: https://github.com/jackdewan/furnacepath-ios/actions/runs/43949776035. No production sim writes performed.
+- Isolated backend contract verification passed using a disposable temporary SQLite database: 103 active question schemas; correct/incorrect learning submissions; reasoning/confidence queued for tutor; normal review spacing advanced to three days; separate manual review update; all five plants; 57 simulated months including both finished and game_over; history and abandon. Endpoint response required fields/types checked against native models. This is backend/schema validation, not native runtime UI testing.
+- Remaining limits: actual iPhone interaction/Tailscale transport not exercised; signing/TestFlight awaits Jack. Final documentation commit simulator CI pending.
