@@ -1,0 +1,33 @@
+name: FurnacePath
+options:
+  bundleIdPrefix: com.jackdewan
+  deploymentTarget:
+    iOS: '17.0'
+targets:
+  FurnacePath:
+    type: application
+    platform: iOS
+    sources: [FurnacePath]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.jackdewan.furnacepath
+        SWIFT_VERSION: '5.0'
+        TARGETED_DEVICE_FAMILY: '1,2'
+        GENERATE_INFOPLIST_FILE: NO
+    info:
+      path: FurnacePath/Info.plist
+      properties:
+        CFBundleDisplayName: FurnacePath
+        UILaunchScreen: {}
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+          NSExceptionDomains:
+            '100.87.179.24':
+              NSExceptionAllowsInsecureHTTPLoads: true
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+schemes:
+  FurnacePath:
+    build:
+      targets:
+        FurnacePath: all

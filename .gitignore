@@ -1,0 +1,13 @@
+*.xcodeproj/
+DerivedData/
+.build/
+*.xcuserstate
+*.log
+.DS_Store
+*.db
+*.db-*
+*.sqlite*
+*.p12
+*.mobileprovision
+.env*
+data/

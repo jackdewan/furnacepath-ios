@@ -1,0 +1,10 @@
+name: TestFlight (setup required)
+on: workflow_dispatch
+jobs:
+  setup-required:
+    runs-on: macos-latest
+    steps:
+      - run: |
+          echo 'TODO: Jack supplies App Store Connect API key through GitHub secrets.'
+          echo 'TODO: Configure signing certificates, provisioning, archive and export/upload.'
+          echo 'Signing and distribution are intentionally not attempted.'
