@@ -42,6 +42,7 @@ struct RootView: View {
                         Text("\(state.xp) XP · \(state.streak) day streak").font(.headline)
                         if state.reviewDueCount > 0 { Button("Resume · \(state.reviewDueCount) reviews due →") { tab = 2 } }
                         Button("Sprint · 5 questions") { start("Sprint", "sprint", Array(store.questions.filter { $0.unit > 0 }.shuffled().prefix(5))) }.buttonStyle(.borderedProminent)
+                        NavigationLink("Run the Shop · Resume / New run") { SimView() }
                         Button("CEO Rep") { start("CEO Rep", "ceorep", store.questions.filter { $0.scenario == true }) }.buttonStyle(.bordered)
                         ForEach(bank.units) { unit in
                             VStack(alignment: .leading, spacing: 12) {
@@ -104,6 +105,7 @@ struct RootView: View {
                                 }
                             } else { Text(store.tutorFailed ? "Coach unavailable. Pull to refresh." : "Loading coach…") }
                         }.card()
+                        NavigationLink("Run the Shop history and debriefs") { SimView() }
                         Text("Owner Track").font(.title2.bold())
                         ForEach(Array(levels.enumerated()), id: \.offset) { index, level in
                             VStack(alignment: .leading) {
