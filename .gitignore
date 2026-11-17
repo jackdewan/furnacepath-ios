@@ -11,3 +11,6 @@ DerivedData/
 *.mobileprovision
 .env*
 data/
+*.p8
+*.ipa
+*.xcarchive/
