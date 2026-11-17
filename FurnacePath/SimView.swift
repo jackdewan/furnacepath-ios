@@ -16,7 +16,7 @@ struct SimView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 if let error = sim.error {
-                    Text(error).foregroundStyle(Color.orangeAccent)
+                    Text(error).foregroundStyle(Color.ink)
                     Button("Reload sim state") { Task { await sim.load(); resetChoices() } }
                 }
                 if sim.busy { ProgressView("Contacting P51…") }
@@ -118,7 +118,7 @@ struct SimView: View {
             } else { Text("Price: \(money(job.price ?? 0))") }
             let price = job.pricing == "player" ? (prices[index] ?? job.priceMin ?? 0) : (job.price ?? 0)
             Text("Contribution: \(money((price - job.variableCost) / max(0.1, job.furnaceHrs)))/furnace hr").foregroundStyle(Color.steel)
-            if !accepted.contains(index) && usedHours(state) + job.furnaceHrs > state.capacityHrs { Text("Exceeds available capacity").foregroundStyle(Color.orangeAccent) }
+            if !accepted.contains(index) && usedHours(state) + job.furnaceHrs > state.capacityHrs { Text("Exceeds available capacity").foregroundStyle(Color.ink) }
         }.card().disabled(sim.busy)
     }
     @ViewBuilder func resultView(_ result: SimMonthResult) -> some View {

@@ -44,7 +44,7 @@ struct LessonView: View {
                             ForEach(Array((q.choices ?? []).enumerated()), id: \.offset) { choice, text in
                                 Button { given = Double(choice) } label: {
                                     HStack { Text(text); Spacer(); if given == Double(choice) { Image(systemName: "checkmark.circle.fill") } }.frame(maxWidth: .infinity, alignment: .leading)
-                                }.buttonStyle(.bordered).disabled(given != nil)
+                                }.buttonStyle(AnswerCardStyle(selected: given == Double(choice))).disabled(given != nil)
                             }
                         } else {
                             TextField("Enter your answer", text: $numeric).keyboardType(.decimalPad).textFieldStyle(.roundedBorder).disabled(given != nil)
@@ -52,7 +52,7 @@ struct LessonView: View {
                         }
                         if let value = given {
                             VStack(alignment: .leading, spacing: 12) {
-                                Text(q.isCorrect(value) ? "✓ Correct" : "Not quite").font(.headline).foregroundStyle(q.isCorrect(value) ? Color.steel : Color.orangeAccent)
+                                Text(q.isCorrect(value) ? "✓ Correct" : "Not quite").font(.headline).foregroundStyle(Color.ink)
                                 Text(q.explanation)
                             }.card()
                             if q.thinking == true || q.scenario == true {
@@ -72,7 +72,7 @@ struct LessonView: View {
                 }.padding()
             }.background(Color.paper).navigationTitle(round.title).navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() }.disabled(saving) } }
-        }.interactiveDismissDisabled(saving)
+        }.furnaceTheme().interactiveDismissDisabled(saving)
     }
     func advance(_ q: Question, _ value: Double) {
         answers.append(RoundAnswer(questionId: q.id, correct: q.isCorrect(value), givenAnswer: value, reasoning: reasoning.isEmpty ? nil : String(reasoning.prefix(4000)), confidence: confidence.isEmpty ? nil : confidence))

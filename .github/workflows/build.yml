@@ -11,3 +11,9 @@ jobs:
         run: xcodegen generate
       - name: Build iOS Simulator
         run: xcodebuild build -project FurnacePath.xcodeproj -scheme FurnacePath -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
+      - name: Capture isolated simulator verification
+        run: bash scripts/ci/screenshots.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verify-m11d
+          path: verify-m11d/*.png

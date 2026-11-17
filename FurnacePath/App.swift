@@ -2,7 +2,7 @@ import SwiftUI
 
 extension Color {
     static let ink = Color(red: 27/255, green: 34/255, blue: 48/255)
-    static let paper = Color(red: 0.97, green: 0.95, blue: 0.91)
+    static let paper = Color(red: 255/255, green: 248/255, blue: 236/255)
     static let orangeAccent = Color(red: 232/255, green: 93/255, blue: 31/255)
     static let steel = Color(red: 0.055, green: 0.486, blue: 0.482)
     static let amber = Color(red: 0.95, green: 0.66, blue: 0.11)
@@ -12,7 +12,7 @@ extension Color {
     @Environment(\.scenePhase) private var scenePhase
     var body: some Scene {
         WindowGroup {
-            RootView().environmentObject(store).tint(.orangeAccent)
+            RootView().environmentObject(store).furnaceTheme()
                 .task { await store.refresh() }
                 .onChange(of: scenePhase) { _, phase in if phase == .active { Task { await store.refresh() } } }
         }
@@ -21,7 +21,7 @@ extension Color {
 struct Round: Identifiable { let id = UUID(); let title: String; let mode: String; let questions: [Question] }
 struct RootView: View {
     @EnvironmentObject var store: Store
-    @State private var tab = 0
+    @State private var tab = Verification.tab
     @State private var round: Round?
     let categories = ["Basics", "Pricing", "Capacity", "Cash", "Buildings", "Risk"]
     let levels = [("Operator", 0), ("Foreman", 500), ("Plant Mgr", 1500), ("Owner", 3000)]
@@ -118,15 +118,66 @@ struct RootView: View {
                         }
                     }.tabItem { Label("Mastery", systemImage: "chart.bar") }.tag(3)
                 }
+                .toolbar(.hidden, for: .tabBar)
+                .safeAreaInset(edge: .bottom) { WarmTabBar(selection: $tab) }
             } else if store.loading { ProgressView("Loading your progress…").frame(maxWidth: .infinity, maxHeight: .infinity) }
             else { ContentUnavailableView("Progress unavailable", systemImage: "network.slash", description: Text("Connect to Tailscale and tap Retry.")) }
         }.foregroundStyle(Color.ink)
-        .sheet(item: $round) { round in LessonView(round: round).environmentObject(store) }
+        .sheet(item: $round) { round in LessonView(round: round).environmentObject(store).furnaceTheme() }
+        .onChange(of: store.bank != nil) { _, ready in
+            if ready && Verification.screen == "lesson" { start("The Language of Money · Lesson 1", "lesson", Array(store.questions.filter { $0.type == "mc" }.prefix(2))) }
+        }
     }
     func page<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
-        NavigationStack { ScrollView { VStack(alignment: .leading, spacing: 20, content: content).padding().frame(maxWidth: 700) }.background(Color.paper).navigationTitle(title).refreshable { await store.refresh() } }
+        NavigationStack { ScrollView { VStack(alignment: .leading, spacing: 20, content: content).padding().frame(maxWidth: 700) }.background(Color.paper).navigationTitle(title).refreshable { await store.refresh() }
+            .navigationDestination(isPresented: .constant(Verification.screen == "sim")) { SimView() } }
     }
 }
 extension View {
     func card() -> some View { self.padding().frame(maxWidth: .infinity, alignment: .leading).background(.white.opacity(0.8), in: RoundedRectangle(cornerRadius: 16)) }
+}
+
+// Paper surfaces always use the light semantic environment, including system chrome
+// and presented sheets. Accent tint belongs to controls, never inherited body text.
+struct FurnaceTheme: ViewModifier {
+    func body(content: Content) -> some View {
+        content.foregroundStyle(Color.ink).tint(.ink)
+            .background(Color.paper).preferredColorScheme(.light)
+            .environment(\.colorScheme, .light)
+    }
+}
+extension View {
+    func furnaceTheme() -> some View { modifier(FurnaceTheme()) }
+}
+struct WarmTabBar: View {
+    @Binding var selection: Int
+    let tabs = [("Path", "point.topleft.down.to.point.bottomright.curvepath"), ("Drills", "bolt"), ("Review", "arrow.clockwise"), ("Mastery", "chart.bar")]
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(tabs.indices, id: \.self) { index in
+                Button { selection = index } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: tabs[index].1).font(.system(size: 20))
+                            .foregroundStyle(selection == index ? Color.orangeAccent : Color.ink)
+                        Text(tabs[index].0).font(.caption2.bold()).foregroundStyle(Color.ink)
+                    }.frame(maxWidth: .infinity).frame(height: 52)
+                        .background(selection == index ? Color.orangeAccent.opacity(0.12) : .clear, in: Capsule())
+                }.buttonStyle(.plain)
+                    .accessibilityAddTraits(selection == index ? .isSelected : [])
+            }
+        }.padding(5).background(.ultraThinMaterial, in: Capsule())
+            .background(Color(red: 1, green: 252/255, blue: 245/255).opacity(0.62), in: Capsule())
+            .overlay(Capsule().strokeBorder(.white.opacity(0.75)))
+            .shadow(color: .ink.opacity(0.15), radius: 12, y: 5)
+            .frame(maxWidth: 430).padding(.horizontal, 16).padding(.bottom, 8)
+    }
+}
+struct AnswerCardStyle: ButtonStyle {
+    let selected: Bool
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.foregroundStyle(Color.ink).padding(16)
+            .background(selected ? Color.orangeAccent.opacity(0.12) : Color.white, in: RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(selected ? Color.orangeAccent : Color.ink.opacity(0.25), lineWidth: selected ? 2 : 1))
+            .opacity(configuration.isPressed ? 0.8 : 1)
+    }
 }

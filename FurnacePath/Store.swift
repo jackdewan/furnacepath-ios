@@ -4,6 +4,7 @@ import SwiftUI
 struct API {
     static let base = URL(string: "http://100.87.179.24:3011")!
     static func request<T: Decodable>(_ path: String, body: Data? = nil) async throws -> T {
+        if Verification.screen != nil { return try Verification.response(path, body: body) }
         var request = URLRequest(url: base.appendingPathComponent(path), cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 8)
         if let body { request.httpMethod = "POST"; request.httpBody = body; request.setValue("application/json", forHTTPHeaderField: "Content-Type") }
         let (data, response) = try await URLSession.shared.data(for: request)
