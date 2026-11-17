@@ -87,7 +87,7 @@ jobs:
               --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID" 2>&1 | tee "$RUNNER_TEMP/altool-upload.log"
           }
           if ! upload; then
-            if ! grep -Eiq 'No suitable application records were found|Could not find (an|the) app|No application record|app record.*(not found|does not exist)' "$RUNNER_TEMP/altool-upload.log"; then
+            if ! grep -Eiq 'Cannot determine the Apple ID from Bundle ID|No suitable application records were found|Could not find (an|the) app|No application record|app record.*(not found|does not exist)' "$RUNNER_TEMP/altool-upload.log"; then
               exit 1
             fi
             ruby scripts/ci/create_app.rb
