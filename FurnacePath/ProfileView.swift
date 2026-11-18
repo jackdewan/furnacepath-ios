@@ -288,6 +288,6 @@ struct ProfileView: View {
         let local = email[email.startIndex..<at]
         let domain = email[at...]
         if local.count <= 1 { return email }
-        return String(local.prefix(1)) + String(repeating: "•", count: min(local.count - 1, 5)) + domain
+        return String(local.prefix(1)) + String(repeating: "•", count: min(local.count - 1, 5)) + String(domain)
     }
 }
