@@ -104,3 +104,7 @@ Executed the full M13a backend build on the live production server at `~/furnace
 - M13b (Instrument redesign): not started. Gated on M13a verification (now passed) and Jack's approval of missing-surface mockups.
 - iOS auth plumbing (Keychain wrapper, auth state, sign-in screen): foundations present in the iOS repo but not wired to the new backend endpoints. iOS implementation is part of M13a iOS work, not the backend build.
 - No secrets, tokens, keys, or JWTs were printed.
+
+## M13a iOS auth continuation — 2026-11-18
+- Wired separate Keychain session slots, active-session selection, authenticated requests and 401 sign-out, Apple sign-in, isolated demo sessions, dry-run claim preview, profile pairing and sign-out. Corrected the auth and claim models against the deployed endpoint response shapes. Added the Apple sign-in entitlement and isolated screenshot fixtures for sign-in, claim and profile.
+- Simulator workflow run 44404737927 compiled successfully at c88b33c, but simulator boot stalled for over four minutes in Apple's CoreLocation data migration. The run was cancelled to release the runner; no screenshots were captured. Follow-up run 44404955771 at df5461e is queued for a fresh macOS runner. M13a iOS verification remains **INCOMPLETE** until that run passes and the three screenshots are downloaded to verify-m13/ and reviewed. Actual Apple sign-in and tailnet interaction are not covered by the isolated fixtures.
