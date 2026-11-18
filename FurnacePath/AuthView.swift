@@ -100,12 +100,12 @@ struct SignInView: View {
             let fullName = [credential.fullName?.givenName, credential.fullName?.familyName]
                 .compactMap { $0 }.joined(separator: " ")
             let email = credential.email
-            if !fullName.isEmpty || email != nil {
-                UserInfo.save(UserInfo(name: fullName.isEmpty ? nil : fullName, email: email))
-            }
             signingIn = true; signInError = nil
             do {
                 let claim = try await store.handleAppleSignIn(identityToken: identityToken)
+                if !fullName.isEmpty || email != nil {
+                    UserInfo.save(UserInfo(name: fullName.isEmpty ? nil : fullName, email: email))
+                }
                 if let claim {
                     claimData = claim; showClaim = true
                 }

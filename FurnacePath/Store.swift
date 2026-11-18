@@ -72,14 +72,11 @@ extension Notification.Name { static let sessionUnauthorized = Notification.Name
             await refresh(); return
         }
         #endif
-        if let token = SessionKeychain.read(.real) {
+        let slot: SessionKeychain.Slot = UserDefaults.standard.string(forKey: "active_session") == "demo" ? .demo : .real
+        if let token = SessionKeychain.read(slot) {
             API.sessionToken = token
             await refresh()
-            if authState == .unknown { authState = .signedIn }
-        } else if let token = SessionKeychain.read(.demo) {
-            API.sessionToken = token
-            await refresh()
-            if authState == .unknown { authState = .demo }
+            if authState == .unknown { authState = slot == .demo ? .demo : .signedIn }
         } else {
             authState = .signedOut
         }
@@ -94,13 +91,15 @@ extension Notification.Name { static let sessionUnauthorized = Notification.Name
         let auth: AuthResponse = try await API.request("api/auth/apple", body: body)
         guard SessionKeychain.write(auth.sessionToken, to: .real) else { throw URLError(.cannotWriteToFile) }
         API.sessionToken = auth.sessionToken
+        UserDefaults.standard.set("real", forKey: "active_session")
         // Check for claimable legacy progress
         do {
             let claim: ClaimResponse = try await API.request("api/claim", body: Data("{}".utf8))
             if claim.dataset.xp > 0 {
                 return claim
             }
-        } catch { /* No claimable progress or endpoint error — proceed */ }
+        } catch APIError.unauthorized { throw APIError.unauthorized }
+        catch { /* No claimable progress or endpoint error — proceed */ }
         authState = .signedIn
         await refresh()
         return nil
@@ -110,6 +109,7 @@ extension Notification.Name { static let sessionUnauthorized = Notification.Name
         let auth: AuthResponse = try await API.request("api/auth/demo", body: Data("{}".utf8))
         guard SessionKeychain.write(auth.sessionToken, to: .demo) else { throw URLError(.cannotWriteToFile) }
         API.sessionToken = auth.sessionToken
+        UserDefaults.standard.set("demo", forKey: "active_session")
         authState = .demo
         await refresh()
     }
@@ -118,6 +118,7 @@ extension Notification.Name { static let sessionUnauthorized = Notification.Name
         SessionKeychain.delete(isDemo ? .demo : .real)
         if !isDemo { UserInfo.clear() }
         API.sessionToken = nil
+        UserDefaults.standard.removeObject(forKey: "active_session")
         state = nil; bank = nil; queue = nil; tutor = nil
         failed = false; loading = false
         authState = .signedOut
