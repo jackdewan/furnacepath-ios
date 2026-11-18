@@ -279,7 +279,7 @@ struct ProfileView: View {
     private func initialsFromName(_ name: String?) -> String {
         guard let name, !name.isEmpty else { return "?" }
         let parts = name.split(separator: " ")
-        if parts.count >= 2 { return String(parts[0].prefix(1) + parts[1].prefix(1)).uppercased() }
+        if parts.count >= 2 { return (String(parts[0].prefix(1)) + String(parts[1].prefix(1))).uppercased() }
         return String(name.prefix(2)).uppercased()
     }
 
