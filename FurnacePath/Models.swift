@@ -23,6 +23,24 @@ struct RoundAnswer: Encodable {
 }
 struct RoundPayload: Encodable { let mode: String; let answers: [RoundAnswer]; let xpEarned: Int }
 struct SaveResult: Decodable { let ok: Bool; let xp: Int; let streak: Int }
+
+// MARK: - Auth models
+struct AuthResponse: Decodable { let sessionToken: String; let isDemo: Bool? }
+struct ClaimResponse: Decodable { let dryRun: Bool; let claimEnabled: Bool; let dataset: ClaimDataset }
+struct ClaimUnit: Decodable { let unitId: Int; let lessonsCompleted: Int }
+struct ClaimDataset: Decodable {
+    let xp: Int; let streak: Int; let currentUnit: Int
+    let units: [ClaimUnit]; let answerCount: Int; let reviewQueueCount: Int
+    let simHistoryCount: Int; let roundCount: Int
+}
+struct PairResponse: Decodable { let code: String; let expiresIn: Int? }
+struct UserInfo: Codable {
+    let name: String?; let email: String?
+    static let key = "fp_user_info"
+    static func save(_ info: UserInfo) { if let d = try? JSONEncoder().encode(info) { UserDefaults.standard.set(d, forKey: key) } }
+    static func load() -> UserInfo? { UserDefaults.standard.data(forKey: key).flatMap { try? JSONDecoder().decode(UserInfo.self, from: $0) } }
+    static func clear() { UserDefaults.standard.removeObject(forKey: key) }
+}
 enum JSONValue: Decodable {
     case string(String), number(Double), bool(Bool), other
     init(from decoder: Decoder) throws {

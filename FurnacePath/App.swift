@@ -13,8 +13,8 @@ extension Color {
     var body: some Scene {
         WindowGroup {
             RootView().environmentObject(store).furnaceTheme()
-                .task { await store.refresh() }
-                .onChange(of: scenePhase) { _, phase in if phase == .active { Task { await store.refresh() } } }
+                .task { await store.bootstrap() }
+                .onChange(of: scenePhase) { _, phase in if phase == .active, store.authState == .signedIn || store.authState == .demo { Task { await store.refresh() } } }
         }
     }
 }
@@ -23,6 +23,7 @@ struct RootView: View {
     @EnvironmentObject var store: Store
     @State private var tab = Verification.tab
     @State private var round: Round?
+    @State private var showProfile = false
     let categories = ["Basics", "Pricing", "Capacity", "Cash", "Buildings", "Risk"]
     let levels = [("Operator", 0), ("Foreman", 500), ("Plant Mgr", 1500), ("Owner", 3000)]
     func start(_ title: String, _ mode: String, _ questions: [Question]) {
@@ -30,6 +31,12 @@ struct RootView: View {
         round = Round(title: title, mode: mode, questions: questions)
     }
     var body: some View {
+        Group {
+        if store.authState == .signedOut {
+            SignInView()
+        } else if store.authState == .unknown && store.state == nil {
+            ProgressView("Starting…").frame(maxWidth: .infinity, maxHeight: .infinity).background(Color.paper)
+        } else {
         VStack(spacing: 0) {
             if store.failed {
                 VStack { Text("Can't reach your progress on the P51. Check that Tailscale is connected, then retry.")
@@ -122,14 +129,21 @@ struct RootView: View {
                 .safeAreaInset(edge: .bottom) { WarmTabBar(selection: $tab) }
             } else if store.loading { ProgressView("Loading your progress…").frame(maxWidth: .infinity, maxHeight: .infinity) }
             else { ContentUnavailableView("Progress unavailable", systemImage: "network.slash", description: Text("Connect to Tailscale and tap Retry.")) }
+        }
+        }
         }.foregroundStyle(Color.ink)
         .sheet(item: $round) { round in LessonView(round: round).environmentObject(store).furnaceTheme() }
+        .sheet(isPresented: $showProfile) { NavigationStack { ProfileView() }.environmentObject(store).furnaceTheme() }
         .onChange(of: store.bank != nil) { _, ready in
             if ready && Verification.screen == "lesson" { start("The Language of Money · Lesson 1", "lesson", Array(store.questions.filter { $0.type == "mc" }.prefix(2))) }
+            #if DEBUG && targetEnvironment(simulator)
+            if ready && (Verification.screen == "profile" || Verification.screen == "profile-demo") { showProfile = true }
+            #endif
         }
     }
     func page<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         NavigationStack { ScrollView { VStack(alignment: .leading, spacing: 20, content: content).padding().frame(maxWidth: 700) }.background(Color.paper).navigationTitle(title).refreshable { await store.refresh() }
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button { showProfile = true } label: { Image(systemName: "person.crop.circle").foregroundStyle(Color.ink) } } }
             .navigationDestination(isPresented: .constant(Verification.screen == "sim")) { SimView() } }
     }
 }

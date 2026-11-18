@@ -17,3 +17,8 @@ jobs:
         with:
           name: verify-m11d
           path: verify-m11d/*.png
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verify-m13
+          path: verify-m13/*.png

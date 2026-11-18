@@ -13,13 +13,24 @@ enum Verification {
     static var tab: Int { ["drills": 1, "review": 2, "mastery": 3][screen ?? ""] ?? 0 }
     static func response<T: Decodable>(_ path: String, body: Data?) throws -> T {
         #if DEBUG && targetEnvironment(simulator)
-        guard body == nil, let json = fixtures[path] else { throw URLError(.unsupportedURL) }
+        let json: String
+        if body != nil, let j = postFixtures[path] { json = j }
+        else if body == nil, let j = fixtures[path] { json = j }
+        else { throw URLError(.unsupportedURL) }
         return try JSONDecoder().decode(T.self, from: Data(json.utf8))
         #else
         throw URLError(.unsupportedURL)
         #endif
     }
     #if DEBUG && targetEnvironment(simulator)
+    static var fixtureClaimResponse: ClaimResponse {
+        ClaimResponse(dryRun: true, claimEnabled: false, dataset: ClaimDataset(
+            xp: 880, streak: 1, currentUnit: 1, units: [ClaimUnit(unitId: 1, lessonsCompleted: 5)],
+            answerCount: 29, reviewQueueCount: 12, simHistoryCount: 2, roundCount: 15))
+    }
+    private static let postFixtures: [String: String] = [
+        "api/auth/pair": #"{"code":"482019","expiresIn":600}"#,
+    ]
     private static let fixtures: [String: String] = [
         "data/questions.json": #"""
 {"units": [{"id": 1, "title": "The Language of Money", "subtitle": "Fixed cost, variable cost, contribution. The words every decision uses.", "totalLessons": 8}, {"id": 2, "title": "Price the Load", "subtitle": "Per load, per pound, and the only number that matters: dollars per furnace hour.", "totalLessons": 6}, {"id": 3, "title": "Capacity Is King", "subtitle": "Cycle time, bottlenecks, and how many loads a week one bed can really sell.", "totalLessons": 6}, {"id": 4, "title": "Break-Even", "subtitle": "Your monthly nut, and the load count that covers it. No optimism allowed.", "totalLessons": 6}, {"id": 5, "title": "The Technologies", "subtitle": "Nitriding Technology · Gas, fluidized bed, plasma, and salt bath.", "totalLessons": 7}, {"id": 6, "title": "Equipment Anatomy", "subtitle": "Nitriding Technology · Furnaces, gas train, rigging, and oxidation control.", "totalLessons": 7}, {"id": 7, "title": "The Metallurgy and Quality", "subtitle": "Nitriding Technology · Layers, case depth, steels, and verification.", "totalLessons": 7}, {"id": 8, "title": "Atmosphere Control, Deep Dive", "subtitle": "Nitriding Technology · Potential, dissociation, flow, and carrier gases.", "totalLessons": 7}, {"id": 9, "title": "Steels and How They Respond", "subtitle": "Nitriding Technology · Core support, tempering, and alloy response.", "totalLessons": 7}, {"id": 10, "title": "Troubleshooting and Defects", "subtitle": "Nitriding Technology · Trace symptoms to prep, atmosphere, temperature, or steel.", "totalLessons": 7}], "questions": [{"id": "u1q01", "unit": 1, "lesson": 1, "category": "Basics", "type": "mc", "prompt": "Your building lease is $6,000/month whether you run zero loads or fifty. What kind of cost is this?", "choices": ["Variable cost", "Fixed cost", "Contribution", "Marginal cost"], "correct": 1, "explanation": "A fixed cost stays the same regardless of volume. Lease, insurance, base salaries — they hit every month whether the furnace is cold or running 24/7.", "difficulty": 1, "concept": "contribution", "thinking": true}, {"id": "u1q02", "unit": 1, "lesson": 1, "category": "Basics", "type": "mc", "prompt": "Gas consumption goes up every time you run a furnace cycle. What kind of cost is this?", "choices": ["Fixed cost", "Sunk cost", "Variable cost", "Overhead"], "correct": 2, "explanation": "Variable costs rise and fall with production volume. Gas, NH₃, power per cycle, and media wear are all variable — they only hit when the furnace runs.", "difficulty": 1, "concept": "contribution", "thinking": true}], "sources": [{"topic": "AMS 2759/12 scope", "url": "https://saemobilus.sae.org/standards/ams275912-gaseous-nitrocarburizing-automatically-controlled-potentials"}, {"topic": "CQI-9 assessment framework", "url": "https://www.aiag.org/training-and-resources/manuals/details/CQI-9"}, {"topic": "Nitriding potential, Lehrer diagram, and layer fundamentals (ASM Handbook 4A)", "url": "https://dl.asminternational.org/handbooks/edited-volume/18/chapter-abstract/279895/Fundamentals-of-Nitriding-and-Nitrocarburizing"}, {"topic": "Nitride-forming alloy elements and stainless corrosion trade-off (ASM)", "url": "https://www.asminternational.org/hts/technical-resources/one-minute-mentor-archive/"}, {"topic": "Dimensional growth and residual stress in gas nitriding", "url": "https://www.aiheattreating.com/wp-content/uploads/2020/04/Gas-Nitriding-Deep-Dive.pdf"}]}

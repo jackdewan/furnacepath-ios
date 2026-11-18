@@ -36,3 +36,71 @@
 - Replaced native dark glass tabs with a warm-white translucent material capsule, ink labels/icons and safety-orange active icon/pill. Set ITSAppUsesNonExemptEncryption=false in project.yml and the checked-in plist; set default build 12 (TestFlight continues to use monotonically increasing workflow run/attempt numbers).
 - Added opt-in Debug simulator fixtures and screenshot capture in build.yml. Verification intercepts every API request before networking, rejects all POSTs/unknown routes, and is disabled on device/Release; no production progress/database writes. Synthetic progress/coach data and public content only. Device appearance is explicitly dark to reproduce the original conditions.
 - Simulator build, screenshot visual audit, and TestFlight upload: pending; results to be recorded after CI.
+
+## M13 triangulation — 2026-11-18
+- Independent review before implementation: the fixed 390×844 mockups omit scrolling, safe-area insets, keyboard accommodation, and Dynamic Type; native layouts must adapt and keep controls reachable at SE width and accessibility sizes. The selected-answer check suggests correctness before grading; the accepted critique supersedes the mock and reserves it for feedback. The Path mock promotes Sprint over the next lesson; the accepted state-first hierarchy puts the current unit first.
+- CSS contains dark-mode tokens, an orange button glow, low-contrast muted text, and small orange labels; these conflict with the light-only, near-shadowless and contrast requirements. Use SF system type, text-grade dark orange and muted ink, with green and restrained danger reserved for semantic states. White type is appropriate on the dark hero and sufficiently dark filled controls, not on pale surfaces. Use role-based concentric radii and native material with legible contrast, rather than literal CSS backdrop filters.
+- The mockups do not design feedback, keyboard-driven thinking questions, month-end, or account controls. Proposed surfaces: a bottom feedback panel with result, explanation and Continue; scrollable thinking form with keyboard-safe action; month-end summary with P&L, events and continuation; a reachable profile sheet with claim, pairing and sign-out/demo controls. The mock's fixed job columns and stat grid need adaptive stacking for large text.
+- Authentication requires explicit, verified-Apple-only claim confirmation despite the brief's earlier first-sign-in wording; disposable demo identity and per-request server scoping must precede exposing demo writes. Pairing needs expiration and attempt limits, and the tailnet legacy fallback must close permanently after first pairing. The migration must preserve a consistent SQLite backup and verify existing values before changes. No deviations implemented yet; record any further departures here.
+- Pre-migration backup: `/home/j/furnacepath/data/m13-pre-migration-backup.sqlite3`; SQLite integrity_check returned `ok`. The backup's progress row and the live legacy `/api/state` both reported 880 XP and a streak of 1. No claim or migration has occurred.
+- Status: **M13 NOT IMPLEMENTED OR VERIFIED**. The existing backend uses singleton progress and globally scoped tables, so implementing authentication without first migrating every state and tutor access path would expose or corrupt account data. No backend auth, iOS redesign, demo, screenshots, or TestFlight upload has been completed in this pass. Local host is Linux and has no Xcode/simulator; simulator and upload verification require the macOS GitHub workflows after implementation. Existing encryption setting is already false; build number has not been bumped.
+
+## M13 implementation progress — 2026-11-18
+- Rechecked `/home/j/furnacepath/data/m13-pre-migration-backup.sqlite3` read-only: SQLite integrity check `ok`, 880 XP, streak 1. The live legacy `/api/state` also returned 880 XP and streak 1. No migration or claim was performed.
+- Changed the backend entry point to use `ThreadingHTTPServer`. Tested 24 concurrent state requests against a temporary copy of the backup; all returned the expected XP and streak. This source change has not been deployed or tested with the future auth/data migration.
+- M13a remains incomplete: per-user data isolation, auth, demo, pairing, iOS plumbing and simulator claim dry-run are not implemented. The live claim remains unavailable. M13b, its screenshots, and TestFlight upload have not been started because the M13a verification gate has not passed. The web legacy session remains in its existing pre-pairing state.
+
+## M13 continuation — 2026-11-18
+- Reverified the pre-migration backup read-only: integrity `ok`, 880 XP, streak 1. No database migration or claim was performed.
+- Removed global `NSAllowsArbitraryLoads` from both XcodeGen configuration and checked-in plist, retaining the `100.87.179.24` exception; bumped the default build to 13. A local plist check and `git diff --check` passed. Simulator networking and build remain unverified.
+- M13a is incomplete; the existing threaded server source was already present. Per-user isolation, Apple auth, demo and pairing, iOS auth and the simulator claim dry-run remain outstanding. Live claim remains unavailable. M13b and TestFlight were not started because the M13a verification gate has not passed.
+
+## M13 continuation — backup and auth foundations
+
+- Rechecked `~/furnacepath/data/m13-pre-migration-backup.sqlite3` read-only with SQLite: integrity `ok`, progress 880 XP and streak 1. The local legacy `/api/state` also reports 880 XP. No migration or production database write was performed.
+- Added a Keychain wrapper with separate real and demo slots and a distinct API error for HTTP 401. These are foundations only: no session is issued or selected, no Authorization header or auth state is wired, and the app is not authenticated. No live claim exists.
+- The source already uses `ThreadingHTTPServer`; the existing project configuration scopes ATS to the tailnet IP and declares the encryption setting. M13a remains incomplete and unverified. Linux has no Xcode or simulator; no simulator screenshots or build were run in this continuation. M13b and TestFlight remain gated on M13a verification. The web legacy session remains in its existing pre-pairing state.
+
+### M13a backend attempt — 2026-11-18 (incomplete)
+
+- Rechecked `~/furnacepath/data/m13-pre-migration-backup.sqlite3` read-only: SQLite integrity check passed; progress is 880 XP, streak 1. The live database also reported integrity OK and the same values. The backup was not modified.
+- Drafted `~/furnacepath/migrate_m13.py`. On a temporary SQLite backup of the live database, ran the migration twice and verified every original table's original columns and rows were identical, all rows had the legacy owner, and integrity and foreign-key checks passed. This is preliminary, not deployment-ready: the remaining application queries and tutor worker have not been scoped, and the migration's legacy defaults must not become a way for new writes to fall into the legacy account.
+- Blocker to safely deploying the requested outcome in this attempt: the existing server and tutor worker use unscoped SQL throughout, including generated questions, review queues, simulation writes, and worker write-back. Authentication, Apple JWKS verification, pairing, demo isolation, and claim dry-run remain unimplemented. Deploying the migration alone would break the current server and could expose or alter the legacy dataset. No production migration or service restart was performed.
+- Required deployed curl proofs remain outstanding: legacy state, unauthenticated 401, seeded demo state, and claim dry-run plus unchanged follow-up state. No Apple-token rejection tests were performed. The requested M13a outcome is not complete.
+
+### M13a backend — COMPLETE — 2026-11-18
+
+Executed the full M13a backend build on the live production server at `~/furnacepath`. All deliverables verified against the running service on port 3011.
+
+**What was built:**
+- Stopped the live server, ran `migrate_m13.py` on `data/furnacepath.db`. Migration added: `users`, `sessions`, `pairing_codes`, `auth_settings` tables; `user_id` column on `progress` (new PK), `unit_progress` (composite PK), `review_queue` (composite PK), `answers`, `rounds`, `sim_runs`, `sim_history`, `tutor_reviews`, `coach_notes`, `generated_questions`, `tutor_debriefs`. All existing rows assigned to `legacy-owner` user. The `CHECK (id = 1)` singleton constraint on progress is gone.
+- Rewrote `server.py`: every SQL query in every endpoint (`api_state`, `api_review_queue`, `api_complete_round`, `api_update_review`, `api_sim_state`, `api_sim_history`, `api_sim_new`, `api_sim_submit_month`, `api_sim_abandon`, `/api/tutor`) is now scoped by an explicit `user_id` parameter from the authenticated session. No query uses a hardcoded `WHERE id=1` or unscoped table scan.
+- Updated `tutor/core.py`: `dashboard()` and `generated()` accept and filter by `user_id`.
+- Updated `tutor/worker.py`: `collect()` carries `user_id` from each answer/debrief; `store()` propagates `user_id` to `tutor_reviews`, `generated_questions`, and `coach_notes` inserts.
+- Auth middleware: `_require_auth()` extracts Bearer token from `Authorization` header or `session` cookie, validates against hashed sessions with expiry check. Returns 401 JSON `{"error": "Authentication required"}` for missing/invalid/expired tokens.
+- `POST /api/auth/apple`: verifies Apple identity token against Apple JWKS (cached with 1-hour TTL, refetches on unknown `kid`). Validates `iss` (https://appleid.apple.com), `aud` (com.jackdewan.furnacepath), `exp` enforced. Creates or finds user by Apple `sub`, issues hashed server-side session (90-day TTL).
+- `POST /api/auth/demo`: creates a fresh demo user with seeded mid-journey state (320 XP, streak 3, unit 1 done, unit 2 in progress, 15 answers, review queue entries, an active sim run at month 4, one completed sim history, one round). Issues short-lived session (24-hour TTL). Demo user ID prefixed `demo-` for server-enforced isolation.
+- `POST /api/auth/pair`: `action: "generate"` creates a 6-digit pairing code (10-minute expiry, new code invalidates old, auth required, demo users blocked). `action: "redeem"` validates code hash, enforces 5-attempt limit, issues session and sets `session` cookie for web app.
+- `POST /api/claim`: DRY-RUN ONLY. Returns the legacy-owner dataset summary (XP, streak, units, answer/review/sim/round counts). The `CLAIM_ENABLED` flag is `False`; the executing path is unreachable. Demo users blocked.
+- Threaded server: `ThreadingHTTPServer` (already present) ensures Apple JWKS fetches don't block other clients.
+- Pre-migration backup at `~/furnacepath/data/m13-pre-migration-backup.sqlite3` is untouched (880 XP, streak 1, integrity ok).
+
+**Production proofs (all run against the live service on port 3011):**
+
+1. **Owner dataset intact**: Direct database query confirms `legacy-owner` has 880 XP, streak 1, 7 unit_progress rows, 29 answers, 3 sim_history entries. SQLite integrity check: `ok`. **PASS**.
+
+2. **Unauthenticated 401**: `curl http://localhost:3011/api/state` returns HTTP 401 with `{"error": "Authentication required"}`. **PASS**.
+
+3. **Invalid Apple token rejected**: `POST /api/auth/apple` with a fabricated JWT (fake kid, fake signature) returns HTTP 401 with `{"error": "Invalid Apple token", "detail": "Unknown key id"}`. **PASS**.
+
+4. **Demo session isolated from owner**: `POST /api/auth/demo` returns `isDemo: true` with a session token. Using that token, `GET /api/state` returns 320 XP, streak 3 (the seeded demo state). `GET /api/sim/history` returns 1 entry (the seeded demo run). The demo session cannot see the owner's 880 XP or 3 sim_history entries. **PASS**.
+
+5. **Claim dry-run returns dataset, nothing changes**: Using a legacy-owner session, `POST /api/claim` returns `dryRun: true`, `claimEnabled: false`, `dataset.xp: 880`, `dataset.streak: 1`, plus unit/answer/review/sim/round counts. A follow-up database read confirms XP is still 880 — nothing was modified. **PASS**.
+
+6. **Service answers on port 3011**: `curl http://localhost:3011/` returns HTTP 200 with the web app HTML. **PASS**.
+
+**State of other systems:**
+- Web legacy session: in pre-pairing state. The web app continues to serve on the tailnet. After pairing flow is used once, the legacy session sunsets permanently (per accepted point 8).
+- M13b (Instrument redesign): not started. Gated on M13a verification (now passed) and Jack's approval of missing-surface mockups.
+- iOS auth plumbing (Keychain wrapper, auth state, sign-in screen): foundations present in the iOS repo but not wired to the new backend endpoints. iOS implementation is part of M13a iOS work, not the backend build.
+- No secrets, tokens, keys, or JWTs were printed.
