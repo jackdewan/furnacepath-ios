@@ -159,6 +159,7 @@ struct ClaimSheet: View {
     @Environment(\.dismiss) var dismiss
     @State private var claiming = false
     @State private var claimError = false
+    @State private var showPreviewResult = false
 
     var body: some View {
         NavigationStack {
@@ -227,6 +228,11 @@ struct ClaimSheet: View {
             .background(Color.paper)
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
+            .alert("Preview only", isPresented: $showPreviewResult) {
+                Button("Continue") { dismiss() }
+            } message: {
+                Text("No progress was linked or changed.")
+            }
         }
     }
 
@@ -251,7 +257,7 @@ struct ClaimSheet: View {
         // Dry-run only: calls /api/claim, which currently returns dryRun: true
         do {
             let result = try await store.claimProgress()
-            if result.dryRun && !result.claimEnabled { dismiss() }
+            if result.dryRun && !result.claimEnabled { showPreviewResult = true } else { claimError = true }
         } catch { claimError = true }
     }
 }
