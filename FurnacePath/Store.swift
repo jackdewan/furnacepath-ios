@@ -13,7 +13,16 @@ struct API {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         if let body { request.httpMethod = "POST"; request.httpBody = body; request.setValue("application/json", forHTTPHeaderField: "Content-Type") }
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch {
+            if request.value(forHTTPHeaderField: "Authorization") != nil {
+                await MainActor.run { NotificationCenter.default.post(name: .networkUnavailable, object: nil) }
+            }
+            throw error
+        }
         guard let http = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
         if http.statusCode == 401 {
             if let sent = request.value(forHTTPHeaderField: "Authorization") {
@@ -30,7 +39,10 @@ struct API {
     }
 }
 
-extension Notification.Name { static let sessionUnauthorized = Notification.Name("sessionUnauthorized") }
+extension Notification.Name {
+    static let sessionUnauthorized = Notification.Name("sessionUnauthorized")
+    static let networkUnavailable = Notification.Name("networkUnavailable")
+}
 
 @MainActor final class Store: ObservableObject {
     enum AuthState { case unknown, signedOut, signedIn, demo }
@@ -44,6 +56,12 @@ extension Notification.Name { static let sessionUnauthorized = Notification.Name
     @Published var tutorFailed = false
 
     init() {
+        NotificationCenter.default.addObserver(forName: .networkUnavailable, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, self.authState == .signedIn || self.authState == .demo else { return }
+                self.failed = true
+            }
+        }
         NotificationCenter.default.addObserver(forName: .sessionUnauthorized, object: nil, queue: .main) { [weak self] note in
             Task { @MainActor in
                 guard let self, let token = API.sessionToken,
