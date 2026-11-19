@@ -26,8 +26,7 @@ struct ProfileView: View {
                     footer
                 }
             }
-            .padding(20)
-            .frame(maxWidth: 700)
+            .padding(20).frame(maxWidth: 700)
         }
         .background(Color.paper)
         .navigationTitle("Profile")
@@ -41,19 +40,16 @@ struct ProfileView: View {
     // MARK: - Demo banner
     private var demoBanner: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "eye")
-                .font(.title3)
-                .foregroundStyle(Color.orangeAccent)
+            Image(systemName: "eye").font(.title3).foregroundStyle(Color.orangeAccent)
             VStack(alignment: .leading, spacing: 4) {
                 Text("You are in the demo").font(.subheadline.bold())
                 Text("Sample data only. Nothing here touches the owner's real progress, and this data resets on its own.")
-                    .font(.caption)
-                    .foregroundStyle(Color.ink.opacity(0.6))
+                    .font(.caption).foregroundStyle(Color.ink.opacity(0.55))
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.amber.opacity(0.12), in: RoundedRectangle(cornerRadius: 14))
+        .padding(16).frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.accentTint, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Color.lineBorder))
     }
 
     // MARK: - Identity card
@@ -61,8 +57,7 @@ struct ProfileView: View {
         HStack(spacing: 14) {
             if store.isDemo {
                 Image(systemName: "person.circle")
-                    .font(.system(size: 44))
-                    .foregroundStyle(Color.ink.opacity(0.3))
+                    .font(.system(size: 44)).foregroundStyle(Color.ink.opacity(0.3))
             } else {
                 let initials = initialsFromName(userInfo?.name)
                 Text(initials)
@@ -75,7 +70,7 @@ struct ProfileView: View {
                 if store.isDemo {
                     HStack(spacing: 6) {
                         Text("Demo account").font(.headline)
-                        Text("DEMO").font(.caption2.bold())
+                        Text("DEMO").font(.system(size: 10, weight: .bold)).tracking(0.5)
                             .padding(.horizontal, 7).padding(.vertical, 2)
                             .background(Color.ink.opacity(0.08), in: Capsule())
                     }
@@ -86,20 +81,19 @@ struct ProfileView: View {
                     Text("Signed in with Apple")
                         .font(.caption).foregroundStyle(Color.ink.opacity(0.55))
                     if let email = userInfo?.email {
-                        Text(maskedEmail(email))
-                            .font(.caption).foregroundStyle(Color.ink.opacity(0.4))
+                        Text(maskedEmail(email)).font(.caption).foregroundStyle(Color.ink.opacity(0.4))
                     }
                 } else { Text("Signed out").font(.headline) }
             }
             Spacer()
             if store.authState == .signedIn && API.sessionToken != nil {
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(Color.steel)
-                    .font(.title3)
+                    .foregroundStyle(Color.successGreen).font(.title3)
             }
         }
         .padding(16)
-        .background(.white.opacity(0.8), in: RoundedRectangle(cornerRadius: 16))
+        .background(.white, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Color.lineBorder))
     }
 
     // MARK: - Stats row
@@ -116,24 +110,23 @@ struct ProfileView: View {
                         sub ?? "\(s?.units.first?.lessonsCompleted ?? 0) of 8 lessons")
         }
         .padding(.vertical, 14)
-        .background(.white.opacity(0.8), in: RoundedRectangle(cornerRadius: 16))
+        .background(.white, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Color.lineBorder))
     }
 
     private func statColumn(_ label: String, _ value: String, _ caption: String) -> some View {
         VStack(spacing: 4) {
-            Text(label).font(.caption2.bold()).foregroundStyle(Color.ink.opacity(0.5))
+            Text(label).font(.system(size: 10, weight: .bold)).tracking(0.8).foregroundStyle(Color.ink.opacity(0.4))
             Text(value).font(.title3.bold())
-            Text(caption).font(.caption2).foregroundStyle(Color.ink.opacity(0.5))
-        }
-        .frame(maxWidth: .infinity)
+            Text(caption).font(.caption2).foregroundStyle(Color.ink.opacity(0.4))
+        }.frame(maxWidth: .infinity)
     }
 
-    // MARK: - Pairing section (real users only)
+    // MARK: - Pairing section
     private var pairingSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("PAIR THE WEB APP")
-                .font(.caption.bold())
-                .foregroundStyle(Color.orangeAccent)
+                .font(.system(size: 11, weight: .bold)).tracking(1.0).foregroundStyle(Color.accentInk)
 
             if let code = pairingCode {
                 HStack(spacing: 8) {
@@ -141,40 +134,38 @@ struct ProfileView: View {
                         Text(String(digit))
                             .font(.system(size: 28, weight: .bold, design: .rounded))
                             .frame(width: 46, height: 56)
-                            .background(Color.ink.opacity(0.04), in: RoundedRectangle(cornerRadius: 10))
+                            .background(Color.surface2, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
                 }
             } else if pairingLoading {
                 ProgressView().frame(height: 56)
             } else if pairingError {
-                Text("Couldn't generate a code.").foregroundStyle(Color.ink.opacity(0.5))
+                Text("Couldn't generate a code.").font(.subheadline).foregroundStyle(Color.ink.opacity(0.5))
             }
 
-            Text("Enter this code in the web app on your computer. It ")
+            (Text("Enter this code in the web app on your computer. It ")
                 + Text("expires in 10 minutes").bold()
-                + Text(", works once, and a new code kills this one.")
+                + Text(", works once, and a new code kills this one."))
+                .font(.subheadline).foregroundStyle(Color.ink.opacity(0.65))
 
             Button {
                 Task { await fetchPairingCode() }
             } label: {
                 Text("Generate new code")
-                    .font(.body.weight(.medium))
-                    .foregroundStyle(Color.ink)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Color.ink.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
-            }
-            .disabled(pairingLoading)
+                    .font(.body.weight(.medium)).foregroundStyle(Color.ink)
+                    .frame(maxWidth: .infinity).padding(.vertical, 14)
+                    .background(Color.ink.opacity(0.06), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }.disabled(pairingLoading)
         }
         .padding(16)
-        .background(.white.opacity(0.8), in: RoundedRectangle(cornerRadius: 16))
+        .background(.white, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Color.lineBorder))
     }
 
-    // MARK: - Server status card
+    // MARK: - Server card
     private var serverCard: some View {
         HStack(spacing: 12) {
-            Circle()
-                .fill(serverReachable == true ? Color.steel : Color.ink.opacity(0.2))
+            Circle().fill(serverReachable == true ? Color.successGreen : Color.ink.opacity(0.2))
                 .frame(width: 10, height: 10)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Shop server · P51").font(.subheadline.bold())
@@ -185,69 +176,58 @@ struct ProfileView: View {
             if let reachable = serverReachable {
                 Text(reachable ? "Connected" : "Offline")
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(reachable ? Color.steel : Color.ink.opacity(0.4))
+                    .foregroundStyle(reachable ? Color.successGreen : Color.ink.opacity(0.4))
             }
         }
         .padding(16)
-        .background(.white.opacity(0.8), in: RoundedRectangle(cornerRadius: 16))
+        .background(.white, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Color.lineBorder))
     }
 
-    // MARK: - Sign out (real users)
+    // MARK: - Sign out
     private var signOutSection: some View {
         Button {
-            store.signOut()
-            dismiss()
+            store.signOut(); dismiss()
         } label: {
             Text("Sign out")
-                .font(.body.weight(.medium))
-                .foregroundStyle(Color.orangeAccent)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(Color.ink.opacity(0.04), in: RoundedRectangle(cornerRadius: 14))
+                .font(.body.weight(.medium)).foregroundStyle(Color.danger)
+                .frame(maxWidth: .infinity).padding(.vertical, 16)
+                .background(Color.ink.opacity(0.04), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
     }
 
     private var footer: some View {
         Text("FurnacePath 1.0 · Only a sign-in token is stored.")
-            .font(.caption)
-            .foregroundStyle(Color.ink.opacity(0.4))
-            .frame(maxWidth: .infinity)
+            .font(.caption).foregroundStyle(Color.ink.opacity(0.4)).frame(maxWidth: .infinity)
     }
 
     // MARK: - Demo sections
     private var exitDemoSection: some View {
         VStack(spacing: 10) {
             Button {
-                store.signOut()
-                dismiss()
+                store.signOut(); dismiss()
             } label: {
                 Text("Exit demo")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Color.orangeAccent, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .font(.body.weight(.semibold)).foregroundStyle(.white)
+                    .frame(maxWidth: .infinity).padding(.vertical, 16)
+                    .background(Color.orangeAccent, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             Text("Exiting clears everything from this session\nand returns to the sign-in screen.")
-                .font(.caption)
-                .multilineTextAlignment(.center)
-                .foregroundStyle(Color.ink.opacity(0.5))
+                .font(.caption).multilineTextAlignment(.center).foregroundStyle(Color.ink.opacity(0.4))
         }
     }
 
     private var ownerOnlySection: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("OWNER ONLY")
-                .font(.caption.bold())
-                .foregroundStyle(Color.ink.opacity(0.5))
+                .font(.system(size: 11, weight: .bold)).tracking(1.0).foregroundStyle(Color.ink.opacity(0.4))
                 .padding(.bottom, 12)
             ownerRow("Pair the web app")
             Divider()
             ownerRow("Claim server progress")
             Divider()
             ownerRow("Sign out")
-        }
-        .padding(.top, 8)
+        }.padding(.top, 8)
     }
 
     private func ownerRow(_ label: String) -> some View {
@@ -255,27 +235,20 @@ struct ProfileView: View {
             Text(label).foregroundStyle(Color.ink.opacity(0.35))
             Spacer()
             Text("Hidden in demo").font(.caption).foregroundStyle(Color.ink.opacity(0.3))
-        }
-        .padding(.vertical, 12)
+        }.padding(.vertical, 12)
     }
 
     // MARK: - Helpers
     private func fetchPairingCode() async {
         pairingLoading = true; pairingError = false
-        do {
-            let result = try await store.generatePairingCode()
-            pairingCode = result.code
-        } catch { pairingError = true }
+        do { let result = try await store.generatePairingCode(); pairingCode = result.code }
+        catch { pairingError = true }
         pairingLoading = false
     }
 
     private func checkServer() async {
-        do {
-            let _: ProgressState = try await API.request("api/state")
-            serverReachable = true
-        } catch {
-            serverReachable = !(error is APIError) ? false : true
-        }
+        do { let _: ProgressState = try await API.request("api/state"); serverReachable = true }
+        catch { serverReachable = !(error is APIError) ? false : true }
     }
 
     private func initialsFromName(_ name: String?) -> String {

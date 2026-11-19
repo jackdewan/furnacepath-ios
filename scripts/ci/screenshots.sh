@@ -1,6 +1,6 @@
 #!/bin/bash
 set -euo pipefail
-mkdir -p verify-m11d verify-m13
+mkdir -p verify-m11d verify-m13 verify-m13b
 # Pick a real iPhone runtime available on this runner, never a generic destination.
 device=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(x["udid"] for group in d["devices"].values() for x in group if x["name"].startswith("iPhone")))')
 xcrun simctl boot "$device"
@@ -22,4 +22,12 @@ for screen in signin signin-error claim profile; do
   xcrun simctl launch "$device" com.jackdewan.furnacepath --verify-screen "$screen"
   sleep 4
   xcrun simctl io "$device" screenshot "verify-m13/$screen.png"
+done
+
+# M13b Instrument redesign verification
+for screen in signin path lesson feedback-correct feedback-wrong sim profile profile-demo; do
+  xcrun simctl terminate "$device" com.jackdewan.furnacepath 2>/dev/null || true
+  xcrun simctl launch "$device" com.jackdewan.furnacepath --verify-screen "$screen"
+  sleep 5
+  xcrun simctl io "$device" screenshot "verify-m13b/$screen.png"
 done
