@@ -1,0 +1,31 @@
+name: Convert signing identity for macOS
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install cryptography
+      - name: Convert stored identity
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          GH_TOKEN: ${{ secrets.CI_SECRETS_ADMIN_TOKEN }}
+        run: |
+          python - <<'PY'
+          import base64, os, subprocess
+          from cryptography.hazmat.primitives import hashes, serialization
+          from cryptography.hazmat.primitives.serialization import pkcs12
+          password = os.environ['P12_PASSWORD'].encode()
+          key, cert, extra = pkcs12.load_key_and_certificates(base64.b64decode(os.environ['BUILD_CERTIFICATE_BASE64']), password)
+          encryption = (serialization.PrivateFormat.PKCS12.encryption_builder().kdf_rounds(50000)
+                        .key_cert_algorithm(pkcs12.PBES.PBESv1SHA1And3KeyTripleDESCBC)
+                        .hmac_hash(hashes.SHA1()).build(password))
+          p12 = pkcs12.serialize_key_and_certificates(b'FurnacePath CI', key, cert, extra, encryption)
+          subprocess.run(['gh', 'secret', 'set', 'BUILD_CERTIFICATE_BASE64', '--repo', os.environ['GITHUB_REPOSITORY']], input=base64.b64encode(p12), check=True, stdout=subprocess.DEVNULL)
+          print('Stored macOS-compatible signing identity.')
+          PY
