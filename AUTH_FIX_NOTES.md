@@ -13,3 +13,5 @@ Apple completion posts its identity token to /api/auth/apple; the backend verifi
 ## Verification
 
 The simulator workflow runs a UI regression with isolated fixtures: fresh sign-in, tap demo, open demo profile, tap Exit demo, assert sign-in returns and Apple label is absent; screenshots are attached to the auth-flow-result xcresult artifact. Backend invalid Apple input returned HTTP 401 and the service journal recorded auth_request method=POST path=/api/auth/apple outcome=401 reason=DecodeError. A real Apple authorization has not occurred: final proof of the end-to-end handshake requires Jack to retest on the new TestFlight build.
+
+Simulator run 44432111432 compiled the app but stalled in its screenshot step; it was cancelled and its UI test did not run. TestFlight was dispatched exactly once as run 44433425874, for commit 670c8e5. Verification of the simulator screenshots and UI flow remains pending until a successful run produces its artifact. An isolated temporary database test confirmed demo logout revokes its session; a locally signed JWT test confirmed rejection of wrong signature, issuer, audience and expiry.
