@@ -1,0 +1,29 @@
+name: Set up distribution signing once
+on: workflow_dispatch
+permissions:
+  contents: read
+concurrency:
+  group: distribution-signing-setup
+  cancel-in-progress: false
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install PyJWT cryptography requests
+      - name: Create and store signing identity
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+          GH_TOKEN: ${{ secrets.CI_SECRETS_ADMIN_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          export ASC_KEY_PATH="$RUNNER_TEMP/asc-key.p8"
+          trap 'rm -f "$ASC_KEY_PATH"' EXIT
+          printf '%s' "$ASC_KEY_P8_BASE64" | base64 -d > "$ASC_KEY_PATH"
+          python scripts/ci/setup_distribution.py
