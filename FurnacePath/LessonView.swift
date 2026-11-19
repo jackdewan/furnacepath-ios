@@ -92,6 +92,7 @@ struct LessonView: View {
         // Eyebrow
         HStack {
             Text(round.title.uppercased()).font(.system(size: 11, weight: .bold)).tracking(1.0).foregroundStyle(Color.ink.opacity(0.4))
+                .accessibilityIdentifier("lesson-screen-\(round.title)")
             Spacer()
             Text("\(index + 1) of \(round.questions.count)").font(.system(size: 13, weight: .medium)).foregroundStyle(Color.ink.opacity(0.55))
         }.padding(.top, 4)

@@ -45,6 +45,6 @@ final class AuthFlowTests: XCTestCase {
         }
         XCTAssertTrue(lesson.isHittable)
         lesson.tap()
-        XCTAssertTrue(app.staticTexts["PRICE THE LOAD · LESSON 1"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.staticTexts["lesson-screen-Price the Load · Lesson 1"].waitForExistence(timeout: 15))
     }
 }
