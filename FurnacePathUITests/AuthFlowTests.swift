@@ -44,7 +44,11 @@ final class AuthFlowTests: XCTestCase {
             app.swipeUp()
         }
         XCTAssertTrue(lesson.isHittable)
+        // Move the row clear of the floating tab bar before tapping it.
+        app.swipeUp()
+        XCTAssertTrue(lesson.isHittable, app.debugDescription)
         lesson.tap()
-        XCTAssertTrue(app.staticTexts["lesson-screen-Price the Load · Lesson 1"].waitForExistence(timeout: 15))
+        let title = app.staticTexts["lesson-screen-Price the Load · Lesson 1"]
+        XCTAssertTrue(title.waitForExistence(timeout: 15), app.debugDescription)
     }
 }
