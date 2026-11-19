@@ -22,6 +22,8 @@ targets:
       path: FurnacePath/Info.plist
       properties:
         CFBundleDisplayName: FurnacePath
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
         ITSAppUsesNonExemptEncryption: false
         CFBundleIconName: AppIcon
         UISupportedInterfaceOrientations:
