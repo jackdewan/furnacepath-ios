@@ -29,4 +29,22 @@ final class AuthFlowTests: XCTestCase {
         XCTAssertFalse(app.buttons["Sign out"].exists)
         capture("03-after-exit", app)
     }
+
+    func testDemoOpensLessonInNonCurrentUnit() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--verify-screen", "auth-flow"]
+        app.launch()
+        let demo = app.buttons["Try the demo"]
+        XCTAssertTrue(demo.waitForExistence(timeout: 15))
+        demo.tap()
+        XCTAssertTrue(app.buttons["open-profile"].waitForExistence(timeout: 15))
+
+        let lesson = app.buttons["unit-2-lesson-1"]
+        for _ in 0..<10 where !lesson.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(lesson.isHittable)
+        lesson.tap()
+        XCTAssertTrue(app.staticTexts["PRICE THE LOAD · LESSON 1"].waitForExistence(timeout: 15))
+    }
 }

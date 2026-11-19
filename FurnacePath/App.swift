@@ -249,7 +249,7 @@ struct RootView: View {
                 }
             }.frame(height: 6).padding(.top, 13)
 
-            if expanded && !lessons.isEmpty {
+            if !lessons.isEmpty {
                 // Lesson timeline with connecting line
                 ZStack(alignment: .topLeading) {
                     Rectangle().fill(Color.lineBorder).frame(width: 2)
@@ -292,6 +292,7 @@ struct RootView: View {
                                     }
                                 }.padding(.vertical, 14)
                             }.buttonStyle(.plain)
+                                .accessibilityIdentifier("unit-\(unit.id)-lesson-\(lesson)")
                         }
                     }
                 }.padding(.top, 16)
