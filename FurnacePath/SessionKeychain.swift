@@ -5,8 +5,14 @@ import Security
 enum SessionKeychain {
     enum Slot: String { case real, demo }
     private static let service = "com.jackdewan.furnacepath.session"
+    #if DEBUG && targetEnvironment(simulator)
+    private static var verificationSessions: [Slot: String] = [:]
+    #endif
 
     static func read(_ slot: Slot) -> String? {
+        #if DEBUG && targetEnvironment(simulator)
+        if Verification.screen != nil { return verificationSessions[slot] }
+        #endif
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
                                     kSecAttrService as String: service,
                                     kSecAttrAccount as String: slot.rawValue,
@@ -19,6 +25,9 @@ enum SessionKeychain {
     }
 
     @discardableResult static func write(_ token: String, to slot: Slot) -> Bool {
+        #if DEBUG && targetEnvironment(simulator)
+        if Verification.screen != nil { verificationSessions[slot] = token; return true }
+        #endif
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
                                     kSecAttrService as String: service,
                                     kSecAttrAccount as String: slot.rawValue]
@@ -33,6 +42,9 @@ enum SessionKeychain {
     }
 
     static func delete(_ slot: Slot) {
+        #if DEBUG && targetEnvironment(simulator)
+        if Verification.screen != nil { verificationSessions.removeValue(forKey: slot); return }
+        #endif
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
                                     kSecAttrService as String: service,
                                     kSecAttrAccount as String: slot.rawValue]
