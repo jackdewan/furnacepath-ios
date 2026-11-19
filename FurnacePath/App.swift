@@ -290,7 +290,7 @@ struct RootView: View {
                                             .padding(.horizontal, 9).padding(.vertical, 5)
                                             .background(Color.accentTint, in: Capsule())
                                     }
-                                }.padding(.vertical, 14)
+                                }.padding(.vertical, 14).contentShape(Rectangle())
                             }.buttonStyle(.plain)
                                 .accessibilityIdentifier("unit-\(unit.id)-lesson-\(lesson)")
                         }
