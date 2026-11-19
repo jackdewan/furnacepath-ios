@@ -10,6 +10,8 @@ struct SignInView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            Spacer().frame(height: 60)
+
             // App icon
             Image(systemName: "flame.fill")
                 .font(.system(size: 36, weight: .medium))
@@ -18,15 +20,17 @@ struct SignInView: View {
                 .background(Color.orangeAccent, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
 
             Text("FurnacePath")
-                .font(.largeTitle.bold())
+                .font(.system(size: 32, weight: .bold))
+                .tracking(-0.5)
                 .padding(.top, 16)
 
             Text("Learn the business of nitriding,\none lesson at a time.")
                 .multilineTextAlignment(.center)
+                .font(.subheadline)
                 .foregroundStyle(Color.ink.opacity(0.55))
                 .padding(.top, 8)
 
-            Spacer().frame(height: 26)
+            Spacer().frame(height: 32)
 
             // Continue with Apple
             SignInWithAppleButton(.continue) { request in
@@ -36,7 +40,7 @@ struct SignInView: View {
             }
             .signInWithAppleButtonStyle(.black)
             .frame(height: 54)
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
             // Try the demo
             Button {
@@ -44,29 +48,27 @@ struct SignInView: View {
             } label: {
                 Text("Try the demo")
                     .font(.body.weight(.medium))
-                    .foregroundStyle(Color.orangeAccent)
+                    .foregroundStyle(Color.accentInk)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
             }
             .disabled(signingIn)
 
             Text("Your progress lives on your own server.\nNothing leaves your tailnet.")
-                .font(.caption).multilineTextAlignment(.center).foregroundStyle(Color.ink.opacity(0.6))
+                .font(.caption).multilineTextAlignment(.center).foregroundStyle(Color.ink.opacity(0.4))
                 .padding(.top, 8)
 
             if signingIn {
-                ProgressView().padding(.bottom, 8)
+                ProgressView().padding(.top, 12)
             }
 
             if let error = signInError {
-                signInErrorBanner(error)
-                    .padding(.bottom, 8)
+                signInErrorBanner(error).padding(.top, 12)
             }
+
+            Spacer()
         }
         .padding(.horizontal, 32)
-        .padding(.top, 24)
-        .frame(maxHeight: .infinity, alignment: .top)
-        .padding(.bottom, 24)
         .frame(maxWidth: 400)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.paper)
@@ -74,14 +76,13 @@ struct SignInView: View {
             claimDismissed()
         } content: {
             if let claim = claimData {
-                ClaimSheet(claim: claim)
-                    .environmentObject(store)
+                ClaimSheet(claim: claim).environmentObject(store)
             }
         }
         .onAppear {
             #if DEBUG && targetEnvironment(simulator)
             if Verification.screen == "signin-error" {
-                signInError = "Couldn’t sign in to the server. Check your connection and try again."
+                signInError = "Couldn't sign in to the server. Check your connection and try again."
             }
             if Verification.screen == "claim" {
                 claimData = Verification.fixtureClaimResponse
@@ -99,7 +100,6 @@ struct SignInView: View {
                 signInError = "Apple did not finish the sign-in, so nothing was linked or changed."
                 return
             }
-            // Save user info from credential (only available on first sign-in)
             let fullName = [credential.fullName?.givenName, credential.fullName?.familyName]
                 .compactMap { $0 }.joined(separator: " ")
             let email = credential.email
@@ -109,11 +109,9 @@ struct SignInView: View {
                 if !fullName.isEmpty || email != nil {
                     UserInfo.save(UserInfo(name: fullName.isEmpty ? nil : fullName, email: email))
                 }
-                if let claim {
-                    claimData = claim; showClaim = true
-                }
+                if let claim { claimData = claim; showClaim = true }
             } catch {
-                signInError = "Couldn’t sign in to the server. Check your connection and try again."
+                signInError = "Couldn't sign in to the server. Check your connection and try again."
             }
             signingIn = false
         case .failure:
@@ -144,18 +142,19 @@ struct SignInView: View {
                     .font(.subheadline.bold())
                 Text(message)
                     .font(.caption)
-                    .foregroundStyle(Color.ink.opacity(0.65))
+                    .foregroundStyle(Color.ink.opacity(0.55))
             }
             Spacer()
             Button("Try again") { signInError = nil }
-                .font(.subheadline.weight(.medium))
+                .font(.subheadline.weight(.medium)).foregroundStyle(Color.accentInk)
         }
         .padding(14)
-        .background(Color.amber.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+        .background(Color.amber.opacity(0.12), in: RoundedRectangle(cornerRadius: 16))
     }
 }
 
-// MARK: - Claim confirmation sheet
+// MARK: - Claim Sheet (Instrument styled)
+
 struct ClaimSheet: View {
     let claim: ClaimResponse
     @EnvironmentObject var store: Store
@@ -168,11 +167,10 @@ struct ClaimSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    // Header
                     HStack(spacing: 8) {
                         Text("EXISTING PROGRESS ON THIS SERVER")
-                            .font(.caption.bold())
-                            .foregroundStyle(Color.orangeAccent)
+                            .font(.system(size: 11, weight: .bold)).tracking(1.0)
+                            .foregroundStyle(Color.accentInk)
                         Text("PREVIEW")
                             .font(.caption2.bold())
                             .padding(.horizontal, 8).padding(.vertical, 3)
@@ -180,53 +178,43 @@ struct ClaimSheet: View {
                     }
 
                     Text("Your progress is here")
-                        .font(.title2.bold())
+                        .font(.title2.bold()).tracking(-0.3)
                     Text("This preview links nothing. Check it, then decide.")
-                        .foregroundStyle(Color.ink.opacity(0.55))
+                        .font(.subheadline).foregroundStyle(Color.ink.opacity(0.55))
 
-                    // Stats grid
                     let d = claim.dataset
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                        statCell("XP EARNED", "\(d.xp) XP", "total so far")
-                        statCell("DAY STREAK", "\(d.streak) day\(d.streak == 1 ? "" : "s")", "still alive")
-                        statCell("LESSONS", "Unit \(d.currentUnit)", "\(d.units.first(where: { $0.unitId == d.currentUnit })?.lessonsCompleted ?? 0) of \(8) done")
-                        statCell("SHOP RUNS", "\(d.simHistoryCount) saved", "")
-                    }
-                    .padding(.vertical, 4)
+                        claimStatCell("XP EARNED", "\(d.xp) XP", "total so far")
+                        claimStatCell("DAY STREAK", "\(d.streak) day\(d.streak == 1 ? "" : "s")", "still alive")
+                        claimStatCell("LESSONS", "Unit \(d.currentUnit)",
+                                     "\(d.units.first(where: { $0.unitId == d.currentUnit })?.lessonsCompleted ?? 0) of 8 done")
+                        claimStatCell("SHOP RUNS", "\(d.simHistoryCount) saved", "")
+                    }.padding(.vertical, 4)
 
-                    // Warning
                     Text("Claiming links this progress to your Apple ID. It cannot be undone from the app.")
-                        .font(.subheadline)
-                        .foregroundStyle(Color.ink.opacity(0.55))
+                        .font(.subheadline).foregroundStyle(Color.ink.opacity(0.55))
 
-                    // Claim button
                     Button {
                         Task { await performClaim() }
                     } label: {
                         Text("Claim this progress")
-                            .font(.body.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(Color.orangeAccent, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .font(.body.weight(.semibold)).foregroundStyle(.white)
+                            .frame(maxWidth: .infinity).padding(.vertical, 16)
+                            .background(Color.orangeAccent, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    }.disabled(claiming)
+
+                    if claimError {
+                        Text("Couldn't load the preview. Please try again.")
+                            .font(.subheadline).foregroundStyle(Color.danger)
                     }
-                    .disabled(claiming)
 
-                    if claimError { Text("Couldn’t load the preview. Please try again.").foregroundStyle(Color.ink) }
-
-                    // Not now button
-                    Button {
-                        dismiss()
-                    } label: {
+                    Button { dismiss() } label: {
                         Text("Not now")
-                            .font(.body.weight(.medium))
-                            .foregroundStyle(Color.ink)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(Color.ink.opacity(0.06), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .font(.body.weight(.medium)).foregroundStyle(Color.ink)
+                            .frame(maxWidth: .infinity).padding(.vertical, 16)
+                            .background(Color.ink.opacity(0.06), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }
-                }
-                .padding(24)
+                }.padding(24)
             }
             .background(Color.paper)
             .presentationDetents([.large])
@@ -239,25 +227,20 @@ struct ClaimSheet: View {
         }
     }
 
-    private func statCell(_ label: String, _ value: String, _ caption: String) -> some View {
+    private func claimStatCell(_ label: String, _ value: String, _ caption: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(.caption.bold())
-                .foregroundStyle(Color.ink.opacity(0.5))
-            Text(value)
-                .font(.title3.bold())
-            Text(caption)
-                .font(.caption)
-                .foregroundStyle(Color.ink.opacity(0.5))
+            Text(label).font(.system(size: 10, weight: .bold)).tracking(0.8).foregroundStyle(Color.ink.opacity(0.4))
+            Text(value).font(.title3.bold())
+            if !caption.isEmpty {
+                Text(caption).font(.caption).foregroundStyle(Color.ink.opacity(0.4))
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 8)
     }
 
     private func performClaim() async {
         claiming = true
         defer { claiming = false }
-        // Dry-run only: calls /api/claim, which currently returns dryRun: true
         do {
             let result = try await store.claimProgress()
             if result.dryRun && !result.claimEnabled { showPreviewResult = true } else { claimError = true }
