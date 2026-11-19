@@ -78,6 +78,20 @@ jobs:
             -exportPath "$RUNNER_TEMP/ipa" -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
             -allowProvisioningUpdates -authenticationKeyPath "$ASC_KEY_PATH" \
             -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+      - name: Inspect archive and IPA versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          inspect_version() {
+            echo "$1"
+            /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$2"
+            /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$2"
+          }
+          inspect_version 'Archive: CFBundleVersion, CFBundleShortVersionString' \
+            "$RUNNER_TEMP/FurnacePath.xcarchive/Products/Applications/FurnacePath.app/Info.plist"
+          unzip -q "$RUNNER_TEMP/ipa/FurnacePath.ipa" 'Payload/*.app/Info.plist' -d "$RUNNER_TEMP/ipa-version"
+          inspect_version 'IPA: CFBundleVersion, CFBundleShortVersionString' \
+            "$RUNNER_TEMP/ipa-version/Payload/FurnacePath.app/Info.plist"
       - name: Upload to TestFlight (create missing app and retry)
         shell: bash
         run: |
