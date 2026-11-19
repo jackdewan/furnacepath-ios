@@ -80,6 +80,9 @@ struct SignInView: View {
         }
         .onAppear {
             #if DEBUG && targetEnvironment(simulator)
+            if Verification.screen == "signin-error" {
+                signInError = "Couldn’t sign in to the server. Check your connection and try again."
+            }
             if Verification.screen == "claim" {
                 claimData = Verification.fixtureClaimResponse
                 showClaim = true
@@ -110,7 +113,7 @@ struct SignInView: View {
                     claimData = claim; showClaim = true
                 }
             } catch {
-                signInError = "Apple did not finish the sign-in, so nothing was linked or changed."
+                signInError = "Couldn’t sign in to the server. Check your connection and try again."
             }
             signingIn = false
         case .failure:

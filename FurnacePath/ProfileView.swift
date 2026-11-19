@@ -19,7 +19,7 @@ struct ProfileView: View {
                 if store.isDemo {
                     exitDemoSection
                     ownerOnlySection
-                } else {
+                } else if store.authState == .signedIn && API.sessionToken != nil {
                     pairingSection
                     serverCard
                     signOutSection
@@ -81,7 +81,7 @@ struct ProfileView: View {
                     }
                     Text("No sign-in. This session ends on its own.")
                         .font(.caption).foregroundStyle(Color.ink.opacity(0.55))
-                } else {
+                } else if store.authState == .signedIn && API.sessionToken != nil {
                     Text(userInfo?.name ?? "Signed in").font(.headline)
                     Text("Signed in with Apple")
                         .font(.caption).foregroundStyle(Color.ink.opacity(0.55))
@@ -89,10 +89,10 @@ struct ProfileView: View {
                         Text(maskedEmail(email))
                             .font(.caption).foregroundStyle(Color.ink.opacity(0.4))
                     }
-                }
+                } else { Text("Signed out").font(.headline) }
             }
             Spacer()
-            if !store.isDemo {
+            if store.authState == .signedIn && API.sessionToken != nil {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(Color.steel)
                     .font(.title3)
@@ -196,6 +196,7 @@ struct ProfileView: View {
     private var signOutSection: some View {
         Button {
             store.signOut()
+            dismiss()
         } label: {
             Text("Sign out")
                 .font(.body.weight(.medium))
@@ -218,6 +219,7 @@ struct ProfileView: View {
         VStack(spacing: 10) {
             Button {
                 store.signOut()
+                dismiss()
             } label: {
                 Text("Exit demo")
                     .font(.body.weight(.semibold))

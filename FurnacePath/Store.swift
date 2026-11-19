@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-enum APIError: Error { case unauthorized }
+enum APIError: Error { case unauthorized, notFound }
 
 struct API {
     static let base = URL(string: "http://100.87.179.24:3011")!
@@ -30,6 +30,7 @@ struct API {
             }
             throw APIError.unauthorized
         }
+        if http.statusCode == 404 { throw APIError.notFound }
         guard (200..<300).contains(http.statusCode) else { throw URLError(.badServerResponse) }
         return try JSONDecoder().decode(T.self, from: data)
     }
@@ -77,7 +78,7 @@ extension Notification.Name {
     func bootstrap() async {
         #if DEBUG && targetEnvironment(simulator)
         if let screen = Verification.screen {
-            if screen == "signin" || screen == "claim" {
+            if screen == "signin" || screen == "signin-error" || screen == "claim" || screen == "auth-flow" {
                 authState = .signedOut; return
             }
             if screen == "profile-demo" {
@@ -93,8 +94,14 @@ extension Notification.Name {
         let slot: SessionKeychain.Slot = UserDefaults.standard.string(forKey: "active_session") == "demo" ? .demo : .real
         if let token = SessionKeychain.read(slot) {
             API.sessionToken = token
-            await refresh()
-            if authState == .unknown { authState = slot == .demo ? .demo : .signedIn }
+            do {
+                state = try await API.request("api/state")
+                authState = slot == .demo ? .demo : .signedIn
+                await refresh()
+            } catch {
+                API.sessionToken = nil
+                authState = .signedOut
+            }
         } else {
             authState = .signedOut
         }
@@ -110,14 +117,29 @@ extension Notification.Name {
         guard SessionKeychain.write(auth.sessionToken, to: .real) else { throw URLError(.cannotWriteToFile) }
         API.sessionToken = auth.sessionToken
         UserDefaults.standard.set("real", forKey: "active_session")
+        // Verify the issued session and load server-owned progress before entering the app.
+        do {
+            state = try await API.request("api/state")
+        } catch {
+            SessionKeychain.delete(.real)
+            API.sessionToken = nil
+            UserDefaults.standard.removeObject(forKey: "active_session")
+            throw error
+        }
         // Check for claimable legacy progress
         do {
             let claim: ClaimResponse = try await API.request("api/claim", body: Data("{}".utf8))
             if claim.dataset.xp > 0 {
                 return claim
             }
-        } catch APIError.unauthorized { throw APIError.unauthorized }
-        catch { /* No claimable progress or endpoint error — proceed */ }
+        } catch APIError.notFound { /* No legacy dataset exists. */ }
+        catch {
+            SessionKeychain.delete(.real)
+            API.sessionToken = nil
+            UserDefaults.standard.removeObject(forKey: "active_session")
+            state = nil
+            throw error
+        }
         authState = .signedIn
         await refresh()
         return nil
@@ -130,19 +152,33 @@ extension Notification.Name {
         UserDefaults.standard.set("demo", forKey: "active_session")
         authState = .demo
         await refresh()
+        guard authState == .demo, API.sessionToken == auth.sessionToken else { throw APIError.unauthorized }
     }
 
     func signOut() {
-        SessionKeychain.delete(isDemo ? .demo : .real)
-        if !isDemo { UserInfo.clear() }
+        let token = API.sessionToken
+        SessionKeychain.delete(.demo)
+        SessionKeychain.delete(.real)
+        UserInfo.clear()
         API.sessionToken = nil
         UserDefaults.standard.removeObject(forKey: "active_session")
         state = nil; bank = nil; queue = nil; tutor = nil
-        failed = false; loading = false
+        failed = false; loading = false; tutorFailed = false
         authState = .signedOut
+        if let token, Verification.screen == nil {
+            Task {
+                var request = URLRequest(url: API.base.appendingPathComponent("api/auth/logout"))
+                request.httpMethod = "POST"
+                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                _ = try? await URLSession.shared.data(for: request)
+            }
+        }
     }
 
-    func finishSignIn() async { authState = .signedIn; await refresh() }
+    func finishSignIn() async {
+        guard API.sessionToken != nil, SessionKeychain.read(.real) != nil else { signOut(); return }
+        authState = .signedIn; await refresh()
+    }
 
     func claimProgress() async throws -> ClaimResponse {
         try await API.request("api/claim", body: Data("{}".utf8))
@@ -155,19 +191,25 @@ extension Notification.Name {
 
     // MARK: - Data refresh
     func refresh() async {
+        guard let token = API.sessionToken, authState == .signedIn || authState == .demo else { return }
         guard !loading else { return }; loading = true
         defer { loading = false }
         do {
             let progress: ProgressState = try await API.request("api/state")
+            guard API.sessionToken == token else { return }
             state = progress
             let content: Bank = try await API.request("data/questions.json")
+            guard API.sessionToken == token else { return }
             bank = content
             let reviews: [ReviewItem] = try await API.request("api/review-queue")
+            guard API.sessionToken == token else { return }
             queue = reviews; failed = false
         } catch APIError.unauthorized {
-            signOut(); return
-        } catch { failed = true }
-        do { tutor = try await API.request("api/tutor"); tutorFailed = false } catch {
+            if API.sessionToken == token { signOut() }; return
+        } catch { if API.sessionToken == token { failed = true } }
+        guard API.sessionToken == token else { return }
+        do { let result: Tutor = try await API.request("api/tutor"); guard API.sessionToken == token else { return }; tutor = result; tutorFailed = false } catch {
+            guard API.sessionToken == token else { return }
             if case APIError.unauthorized = error { signOut(); return }
             tutorFailed = true
         }

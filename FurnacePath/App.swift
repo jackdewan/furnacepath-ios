@@ -134,6 +134,9 @@ struct RootView: View {
         }.foregroundStyle(Color.ink)
         .sheet(item: $round) { round in LessonView(round: round).environmentObject(store).furnaceTheme() }
         .sheet(isPresented: $showProfile) { NavigationStack { ProfileView() }.environmentObject(store).furnaceTheme() }
+        .onChange(of: store.authState) { _, value in
+            if value == .signedOut { showProfile = false; round = nil }
+        }
         .onChange(of: store.bank != nil) { _, ready in
             if ready && Verification.screen == "lesson" { start("The Language of Money · Lesson 1", "lesson", Array(store.questions.filter { $0.type == "mc" }.prefix(2))) }
             #if DEBUG && targetEnvironment(simulator)
@@ -143,7 +146,7 @@ struct RootView: View {
     }
     func page<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         NavigationStack { ScrollView { VStack(alignment: .leading, spacing: 20, content: content).padding().frame(maxWidth: 700) }.background(Color.paper).navigationTitle(title).refreshable { await store.refresh() }
-            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button { showProfile = true } label: { Image(systemName: "person.crop.circle").foregroundStyle(Color.ink) } } }
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button { showProfile = true } label: { Image(systemName: "person.crop.circle").foregroundStyle(Color.ink) }.accessibilityIdentifier("open-profile") } }
             .navigationDestination(isPresented: .constant(Verification.screen == "sim")) { SimView() } }
     }
 }

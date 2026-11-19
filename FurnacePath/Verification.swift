@@ -29,6 +29,7 @@ enum Verification {
             answerCount: 29, reviewQueueCount: 12, simHistoryCount: 2, roundCount: 15))
     }
     private static let postFixtures: [String: String] = [
+        "api/auth/demo": #"{"sessionToken":"verification-demo","isDemo":true}"#,
         "api/auth/pair": #"{"code":"482019","expiresIn":600}"#,
     ]
     private static let fixtures: [String: String] = [

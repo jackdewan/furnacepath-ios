@@ -13,6 +13,15 @@ jobs:
         run: xcodebuild build -project FurnacePath.xcodeproj -scheme FurnacePath -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
       - name: Capture isolated simulator verification
         run: bash scripts/ci/screenshots.sh
+      - name: Exercise demo sign-out
+        run: |
+          device=$(xcrun simctl list devices booted -j | python3 -c 'import json,sys; print(next(x["udid"] for g in json.load(sys.stdin)["devices"].values() for x in g))')
+          xcodebuild test -project FurnacePath.xcodeproj -scheme FurnacePath -destination "id=$device" -resultBundlePath "$RUNNER_TEMP/auth-flow.xcresult" CODE_SIGNING_ALLOWED=NO
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: auth-flow-result
+          path: ${{ runner.temp }}/auth-flow.xcresult
       - uses: actions/upload-artifact@v4
         with:
           name: verify-m11d

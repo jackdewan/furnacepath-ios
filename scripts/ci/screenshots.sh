@@ -17,7 +17,7 @@ for screen in path lesson drills review mastery sim; do
   xcrun simctl io "$device" screenshot "verify-m11d/$screen.png"
 done
 
-for screen in signin claim profile; do
+for screen in signin signin-error claim profile; do
   xcrun simctl terminate "$device" com.jackdewan.furnacepath 2>/dev/null || true
   xcrun simctl launch "$device" com.jackdewan.furnacepath --verify-screen "$screen"
   sleep 4
