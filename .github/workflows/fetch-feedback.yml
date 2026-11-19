@@ -1,0 +1,48 @@
+name: Fetch TestFlight feedback
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare API key
+        env:
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$RUNNER_TEMP/asc"
+          python3 - <<'PY'
+          import base64, os
+          raw = base64.b64decode(os.environ['ASC_KEY_P8_BASE64'], validate=True)
+          path = os.path.join(os.environ['RUNNER_TEMP'], 'asc', 'AuthKey.p8')
+          with open(path, 'wb') as f:
+              f.write(raw)
+          with open(os.environ['GITHUB_ENV'], 'a') as env:
+              env.write(f"ASC_KEY_PATH={path}\n")
+          PY
+          unset ASC_KEY_P8_BASE64
+      - name: Install deps
+        run: pip install --quiet PyJWT cryptography
+      - name: Fetch feedback
+        run: python3 scripts/ci/fetch_feedback.py
+      - name: Upload feedback artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testflight-feedback
+          path: |
+            feedback.txt
+            feedback_raw.json
+          if-no-files-found: warn
+      - name: Remove key material
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/asc"
