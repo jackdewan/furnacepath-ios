@@ -29,7 +29,7 @@ extension Color {
     }
 }
 
-struct Round: Identifiable { let id = UUID(); let title: String; let mode: String; let questions: [Question] }
+struct Round: Identifiable { let id = UUID(); let title: String; let mode: String; let questions: [Question]; var lesson: CourseLesson? = nil }
 
 struct RootView: View {
     @EnvironmentObject var store: Store
@@ -96,6 +96,13 @@ struct RootView: View {
             if ready && Verification.screen == "feedback-wrong" { start("Feedback · Wrong", "lesson", Array(store.questions.filter { $0.type == "mc" }.prefix(1))) }
             #if DEBUG && targetEnvironment(simulator)
             if ready && (Verification.screen == "profile" || Verification.screen == "profile-demo") { showProfile = true }
+            if ready, let screen = Verification.screen,
+               ["learn-card", "learn-transition", "learn-recap"].contains(screen),
+               let unit = store.course?.units.first, let lesson = unit.lessons.first {
+                round = Round(title: "\(unit.title) · Lesson 1", mode: "lesson",
+                             questions: lesson.questions.map { $0.asQuestion(unit: unit.unit, lesson: lesson.lesson) },
+                             lesson: lesson)
+            }
             #endif
         }
     }
@@ -125,8 +132,8 @@ struct RootView: View {
                     pathHeader(state)
 
                     // Current unit + lesson timeline first
-                    if let currentUnit = bank.units.first(where: { $0.id == state.currentUnit }) {
-                        unitSection(currentUnit, state, expanded: true)
+                    if let currentUnit = store.course?.units.first(where: { $0.id == state.currentUnit }) {
+                        courseSection(currentUnit, state)
                     }
 
                     // Sprint hero card
@@ -136,8 +143,8 @@ struct RootView: View {
                     ceoRepCard
 
                     // Remaining units
-                    ForEach(bank.units.filter { $0.id != state.currentUnit }) { unit in
-                        unitSection(unit, state, expanded: false)
+                    ForEach((store.course?.units ?? []).filter { $0.id != state.currentUnit }) { unit in
+                        courseSection(unit, state)
                     }
                 }
                 .padding(.horizontal, 20).padding(.bottom, 100)
@@ -227,6 +234,23 @@ struct RootView: View {
             .background(.white, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Color.lineBorder))
         }.buttonStyle(.plain)
+    }
+
+    func courseSection(_ unit: CourseUnit, _ state: ProgressState) -> some View {
+        let complete = state.units.first { $0.unitId == unit.unit }?.lessonsCompleted ?? 0
+        return VStack(alignment: .leading, spacing: 10) {
+            Text("UNIT \(unit.unit)").font(.caption.bold()).foregroundStyle(Color.accentInk)
+            Text(unit.title).font(.title3.bold())
+            Text(unit.subtitle).font(.subheadline).foregroundStyle(Color.ink.opacity(0.65))
+            Text("\(complete) of \(unit.totalLessons) lessons").font(.caption)
+            ForEach(unit.lessons) { lesson in
+                Button {
+                    round = Round(title: "\(unit.title) · Lesson \(lesson.lesson)", mode: "lesson", questions: lesson.questions.map { $0.asQuestion(unit: unit.unit, lesson: lesson.lesson) }, lesson: lesson)
+                } label: {
+                    HStack { Text("\(lesson.lesson)").font(.headline).frame(width: 30); VStack(alignment: .leading) { Text(lesson.title).font(.body.weight(.semibold)); Text("\(lesson.questions.count) questions").font(.caption) }; Spacer(); Image(systemName: "chevron.right") }.padding(.vertical, 14).contentShape(Rectangle())
+                }.buttonStyle(.plain).accessibilityIdentifier("unit-\(unit.unit)-lesson-\(lesson.lesson)")
+            }
+        }
     }
 
     func unitSection(_ unit: LearningUnit, _ state: ProgressState, expanded: Bool) -> some View {

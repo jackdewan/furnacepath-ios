@@ -1,5 +1,21 @@
 import Foundation
 
+struct Course: Decodable { let units: [CourseUnit] }
+struct CourseUnit: Decodable, Identifiable {
+    let unit: Int; let title: String; let subtitle: String; let totalLessons: Int; let lessons: [CourseLesson]
+    var id: Int { unit }
+}
+struct CourseLesson: Decodable, Identifiable {
+    let lesson: Int; let title: String; let cards: [TeachingCard]; let questions: [CourseQuestion]; let recap: String
+    var id: Int { lesson }
+}
+struct TeachingCard: Decodable { let position: Int; let title: String; let idea: String; let shopFloor: String; let anchor: String; let misconception: String }
+struct CourseQuestion: Decodable {
+    let id: String; let rampLevel: String; let type: String; let prompt: String; let choices: [String]?; let correct: Int?; let expected: Double?; let tolerance: Double?; let explanation: String
+    func asQuestion(unit: Int, lesson: Int) -> Question {
+        Question(id: id, unit: unit, lesson: lesson, category: "Technology", type: type, prompt: prompt, choices: choices, correct: correct, expected: expected, tolerance: tolerance, explanation: explanation, thinking: nil, scenario: nil, generated: nil, misconception: nil, jobCard: nil)
+    }
+}
 struct Bank: Decodable { let units: [LearningUnit]; let questions: [Question] }
 struct LearningUnit: Decodable, Identifiable { let id: Int; let title: String; let subtitle: String; let totalLessons: Int }
 struct Question: Decodable, Identifiable {

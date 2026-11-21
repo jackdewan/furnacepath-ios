@@ -50,6 +50,7 @@ extension Notification.Name {
     @Published var authState: AuthState = .unknown
     @Published var state: ProgressState?
     @Published var bank: Bank?
+    @Published var course: Course?
     @Published var queue: [ReviewItem]?
     @Published var tutor: Tutor?
     @Published var failed = false
@@ -201,6 +202,7 @@ extension Notification.Name {
             let content: Bank = try await API.request("data/questions.json")
             guard API.sessionToken == token else { return }
             bank = content
+            course = try await API.request("data/course.json")
             let reviews: [ReviewItem] = try await API.request("api/review-queue")
             guard API.sessionToken == token else { return }
             queue = reviews; failed = false

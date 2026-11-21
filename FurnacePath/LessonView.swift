@@ -4,6 +4,8 @@ struct LessonView: View {
     let round: Round
     @EnvironmentObject var store: Store
     @Environment(\.dismiss) var dismiss
+    @State private var learnIndex = 0
+    @State private var checking = false
     @State private var index = 0
     @State private var answers: [RoundAnswer] = []
     @State private var selected: Int?       // MC choice index
@@ -16,15 +18,19 @@ struct LessonView: View {
     @State private var error: String?
 
     var correctCount: Int { answers.filter(\.correct).count }
-    var xp: Int { correctCount * 10 + (correctCount == answers.count && !answers.isEmpty ? 50 : 0) }
+    var xp: Int { correctCount * 10 + (round.mode != "lesson" && correctCount == answers.count && !answers.isEmpty ? 50 : 0) }
 
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
-                        if saved {
+                        if saved, let lesson = round.lesson {
+                            learnRecap(lesson)
+                        } else if saved {
                             resultsView
+                        } else if let lesson = round.lesson, !checking {
+                            learnContent(lesson)
                         } else if index < round.questions.count {
                             questionView(round.questions[index])
                         } else {
@@ -36,7 +42,13 @@ struct LessonView: View {
                 .background(Color.paper)
 
                 // Bottom area: "Check answer" button or feedback sheet
-                if !saved && index < round.questions.count {
+                if let lesson = round.lesson, saved {
+                    learnButton("Back to Path") { dismiss() }
+                } else if let lesson = round.lesson, !checking {
+                    learnButton(learnIndex < lesson.cards.count ? "Continue" : "Start questions") {
+                        if learnIndex < lesson.cards.count { learnIndex += 1 } else { checking = true }
+                    }
+                } else if !saved && index < round.questions.count {
                     let q = round.questions[index]
                     if checked {
                         feedbackSheet(q)
@@ -52,6 +64,56 @@ struct LessonView: View {
         .furnaceTheme()
         .interactiveDismissDisabled(saving)
         .onAppear { handleVerification() }
+    }
+
+    func learnHeader(_ phase: String, progress: Double) -> some View {
+        HStack(spacing: 14) {
+            Button { dismiss() } label: { Image(systemName: "xmark").foregroundStyle(Color.ink).frame(width: 36, height: 36).overlay(Circle().strokeBorder(Color.lineBorder)) }
+            GeometryReader { geo in ZStack(alignment: .leading) { Capsule().fill(Color.trackBg); Capsule().fill(Color.orangeAccent).frame(width: geo.size.width * progress) } }.frame(height: 6)
+            Text(phase).font(.caption.bold()).foregroundStyle(phase == "DONE" ? Color.successGreen : Color.accentInk).padding(10).background(phase == "DONE" ? Color.greenTint : Color.accentTint, in: Capsule())
+        }
+    }
+    func learnButton(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) { Text(title).font(.body.bold()).foregroundStyle(.white).frame(maxWidth: .infinity).padding(.vertical, 18).background(Color.orangeAccent, in: RoundedRectangle(cornerRadius: 16)) }.padding(20).background(Color.paper)
+    }
+    @ViewBuilder func learnContent(_ lesson: CourseLesson) -> some View {
+        learnHeader(learnIndex < lesson.cards.count ? "LEARN" : "CHECK", progress: Double(min(learnIndex + 1, lesson.cards.count)) / Double(max(lesson.cards.count, 1)))
+        if learnIndex < lesson.cards.count {
+            let card = lesson.cards[learnIndex]
+            HStack { Text(round.title.uppercased()).font(.caption.bold()).accessibilityIdentifier("lesson-screen-\(round.title)"); Spacer(); Text("Card \(learnIndex + 1) of \(lesson.cards.count)").font(.caption) }
+            HStack(spacing: 4) { ForEach(0..<lesson.cards.count, id: \.self) { i in Capsule().fill(i <= learnIndex ? Color.orangeAccent : Color.trackBg).frame(height: 4) } }
+            VStack(alignment: .leading, spacing: 14) {
+                Text("THE IDEA").font(.caption.bold()).foregroundStyle(Color.accentInk)
+                Text(card.title).font(.title.bold())
+                Text(card.idea).font(.body)
+                Text(card.shopFloor).font(.body)
+            }.instrumentCard()
+            VStack(alignment: .leading, spacing: 10) { Text("ON THE SHOP FLOOR").font(.caption.bold()).foregroundStyle(Color.accentInk); Text(card.anchor) }.padding(18).frame(maxWidth: .infinity, alignment: .leading).background(Color.accentTint, in: RoundedRectangle(cornerRadius: 18)).overlay(alignment: .leading) { RoundedRectangle(cornerRadius: 2).fill(Color.orangeAccent).frame(width: 4) }
+            let misconception = card.misconception.split(separator: "\"", maxSplits: 2, omittingEmptySubsequences: true).map(String.init)
+            VStack(alignment: .leading, spacing: 10) {
+                Text("COMMON MISCONCEPTION").font(.caption.bold()).foregroundStyle(Color.danger)
+                Text(misconception.first ?? card.misconception)
+            }.padding(18).frame(maxWidth: .infinity, alignment: .leading).background(Color.danger.opacity(0.08), in: RoundedRectangle(cornerRadius: 18))
+            if misconception.count > 1 {
+                Text("THE CORRECTION").font(.caption.bold()).foregroundStyle(Color.successGreen)
+                Text(misconception[1].trimmingCharacters(in: .whitespacesAndNewlines)).font(.body)
+            }
+        } else {
+            Text("Now check it").font(.largeTitle.bold())
+            Text("\(lesson.questions.count) questions").font(.title3)
+            ForEach(["define", "recognize", "apply", "judge"], id: \.self) { level in
+                HStack { Text(level.capitalized).font(.headline); Spacer(); Text("\(lesson.questions.filter { $0.rampLevel.lowercased() == level }.count)") }.instrumentCard()
+            }
+            Text("+10 XP for every correct answer").font(.subheadline)
+        }
+    }
+    func learnRecap(_ lesson: CourseLesson) -> some View {
+        VStack(alignment: .leading, spacing: 20) {
+            learnHeader("DONE", progress: 1)
+            Text("Lesson complete").font(.largeTitle.bold())
+            Text("\(correctCount) of \(answers.count) correct · +\(xp) XP").font(.headline)
+            VStack(alignment: .leading, spacing: 12) { Text("THE RECAP").font(.caption.bold()).foregroundStyle(Color.accentInk); Text(lesson.recap).font(.body) }.instrumentCard()
+        }
     }
 
     // MARK: - Top bar
@@ -324,6 +386,16 @@ struct LessonView: View {
                 guard let q = round.questions.first else { return }
                 selected = q.correct == 0 ? 1 : 0
                 checked = true
+            } else if screen == "learn-transition" {
+                guard let lesson = round.lesson else { return }
+                learnIndex = lesson.cards.count
+            } else if screen == "learn-recap" {
+                saved = true
+                answers = round.questions.map { q in
+                    RoundAnswer(questionId: q.id, correct: true,
+                               givenAnswer: Double(q.correct ?? 0),
+                               reasoning: nil, confidence: nil)
+                }
             }
         }
         #endif
